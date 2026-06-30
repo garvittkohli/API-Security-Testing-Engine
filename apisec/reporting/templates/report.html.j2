@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ target }} — Scan Report</title>
+<style>
+  :root {
+    --bg: #15171a;
+    --panel: #1c1f23;
+    --panel-alt: #21242a;
+    --border: #33373d;
+    --border-soft: #2a2d33;
+    --text: #d8dadd;
+    --text-dim: #82868c;
+    --text-faint: #54585e;
+    --teal: #4fd1c5;
+    --coral: #ff7a59;
+    --amber: #f0b84e;
+    --olive: #9ec969;
+    --crit: #ef5b6e;
+    --high: #ff7a59;
+    --med: #f0b84e;
+    --low: #9ec969;
+    --inf: #6b7280;
+    --mono: "JetBrains Mono","SF Mono","Fira Code",Consolas,monospace;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 14px;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 22px 90px; }
+
+  .topbar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+  }
+
+  .topbar .brand {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-faint);
+    letter-spacing: 0.02em;
+  }
+
+  .topbar .brand strong { color: var(--teal); font-weight: 600; }
+
+  .topbar .ts { font-family: var(--mono); font-size: 11.5px; color: var(--text-faint); }
+
+  .target-row {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 0;
+  }
+
+  .target-row .url { color: var(--text); font-weight: 600; }
+  .target-row .sep { color: var(--text-faint); margin: 0 10px; }
+
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 26px;
+  }
+
+  .strip-cell {
+    padding: 14px 12px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  .strip-cell:last-child { border-right: none; }
+
+  .strip-cell .n {
+    font-family: var(--mono);
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .strip-cell .lbl {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    margin-top: 6px;
+  }
+
+  .strip-cell.total .n { color: var(--teal); }
+  .strip-cell.crit .n { color: var(--crit); }
+  .strip-cell.high .n { color: var(--high); }
+  .strip-cell.med .n { color: var(--med); }
+  .strip-cell.low .n { color: var(--low); }
+  .strip-cell.inf .n { color: var(--inf); }
+
+  .lbl-head {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    margin: 30px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .lbl-head::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border-soft);
+  }
+
+  .owasp-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+
+  .owasp-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 12px;
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 4px;
+    font-size: 12.5px;
+  }
+
+  .owasp-row .owasp-name { flex: 1; color: var(--text-dim); }
+  .owasp-row .owasp-bar-track { width: 120px; height: 5px; background: var(--panel-alt); border-radius: 3px; overflow: hidden; }
+  .owasp-row .owasp-bar-fill { height: 100%; background: var(--teal); }
+  .owasp-row .owasp-count { font-family: var(--mono); font-size: 12px; color: var(--text); width: 18px; text-align: right; }
+
+  .chips { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text-faint);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color .12s, color .12s;
+  }
+
+  .chip:hover { border-color: var(--text-dim); color: var(--text-dim); }
+  .chip.on { border-color: var(--teal); color: var(--teal); background: rgba(79,209,197,0.07); }
+
+  .finding {
+    border: 1px solid var(--border-soft);
+    border-radius: 5px;
+    margin-bottom: 7px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+
+  .finding .row-head {
+    display: grid;
+    grid-template-columns: 64px 1fr auto 18px;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+
+  .finding .row-head:hover { background: var(--panel-alt); }
+
+  .sev-tag { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; padding: 2px 0; border-radius: 3px; text-align: center; }
+  .sev-tag.CRITICAL { color: var(--crit); border: 1px solid rgba(239,91,110,0.4); background: rgba(239,91,110,0.08); }
+  .sev-tag.HIGH { color: var(--high); border: 1px solid rgba(255,122,89,0.4); background: rgba(255,122,89,0.08); }
+  .sev-tag.MEDIUM { color: var(--med); border: 1px solid rgba(240,184,78,0.4); background: rgba(240,184,78,0.08); }
+  .sev-tag.LOW { color: var(--low); border: 1px solid rgba(158,201,105,0.4); background: rgba(158,201,105,0.08); }
+  .sev-tag.INFO { color: var(--inf); border: 1px solid rgba(107,114,128,0.4); background: rgba(107,114,128,0.08); }
+
+  .row-title { font-size: 13px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row-path { font-family: var(--mono); font-size: 11.5px; color: var(--text-faint); white-space: nowrap; }
+  .row-chev { color: var(--text-faint); font-size: 11px; transition: transform .15s; }
+  .finding.open .row-chev { transform: rotate(90deg); color: var(--teal); }
+
+  .row-body { display: none; padding: 4px 14px 16px 14px; border-top: 1px solid var(--border-soft); }
+  .finding.open .row-body { display: block; }
+
+  .row-body .blk { margin-top: 14px; }
+  .row-body .blk-lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-faint); margin-bottom: 5px; }
+  .row-body .blk-text { font-size: 12.5px; color: var(--text-dim); }
+
+  .owasp-pill {
+    display: inline-block;
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--teal);
+    border: 1px solid rgba(79,209,197,0.3);
+    background: rgba(79,209,197,0.06);
+    padding: 2px 9px;
+    border-radius: 3px;
+  }
+
+  .evi {
+    background: #101113;
+    border: 1px solid var(--border-soft);
+    border-radius: 4px;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: #b8bcc2;
+    white-space: pre-wrap;
+    word-break: break-all;
+    overflow-x: auto;
+  }
+
+  .evi .ln1 { color: var(--teal); }
+  .evi .ln-status { color: var(--coral); }
+  .evi .ln-status.ok { color: var(--olive); }
+
+  .meta-line { font-family: var(--mono); font-size: 11px; color: var(--text-faint); margin-top: 12px; }
+
+  .empty { text-align: center; padding: 50px 0; color: var(--text-faint); font-family: var(--mono); font-size: 13px; }
+
+  .ftr {
+    margin-top: 50px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-soft);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    text-align: center;
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand"><strong>apisec</strong> · scan report</div>
+    <div class="ts">{{ started_at }}</div>
+  </div>
+
+  <div class="target-row">
+    <span class="url">{{ target }}</span>
+    <span class="sep">/</span>
+    <span>{{ "%.1f"|format(duration_seconds) }}s</span>
+    <span class="sep">/</span>
+    <span>{{ endpoints_scanned }} endpoint{{ "s" if endpoints_scanned != 1 else "" }}</span>
+  </div>
+
+  <div class="strip">
+    <div class="strip-cell total"><div class="n">{{ total_findings }}</div><div class="lbl">total</div></div>
+    <div class="strip-cell crit"><div class="n">{{ summary.CRITICAL }}</div><div class="lbl">critical</div></div>
+    <div class="strip-cell high"><div class="n">{{ summary.HIGH }}</div><div class="lbl">high</div></div>
+    <div class="strip-cell med"><div class="n">{{ summary.MEDIUM }}</div><div class="lbl">medium</div></div>
+    <div class="strip-cell low"><div class="n">{{ summary.LOW }}</div><div class="lbl">low</div></div>
+    <div class="strip-cell inf"><div class="n">{{ summary.INFO }}</div><div class="lbl">info</div></div>
+  </div>
+
+  <div class="lbl-head">owasp api top 10 coverage</div>
+  <div class="owasp-list">
+    {% set max_count = owasp_summary.values() | max if owasp_summary.values() else 1 %}
+    {% for category, count in owasp_summary.items() %}
+    <div class="owasp-row">
+      <span class="owasp-name">{{ category }}</span>
+      <span class="owasp-bar-track"><span class="owasp-bar-fill" style="width: {{ (count / max_count * 100) if max_count else 0 }}%;"></span></span>
+      <span class="owasp-count">{{ count }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="lbl-head">findings</div>
+
+  {% if findings %}
+  <div class="chips">
+    <span class="chip on" data-filter="ALL">all · {{ total_findings }}</span>
+    <span class="chip" data-filter="CRITICAL">critical · {{ summary.CRITICAL }}</span>
+    <span class="chip" data-filter="HIGH">high · {{ summary.HIGH }}</span>
+    <span class="chip" data-filter="MEDIUM">medium · {{ summary.MEDIUM }}</span>
+    <span class="chip" data-filter="LOW">low · {{ summary.LOW }}</span>
+    <span class="chip" data-filter="INFO">info · {{ summary.INFO }}</span>
+  </div>
+
+  {% for f in findings %}
+  <div class="finding" data-severity="{{ f.severity }}">
+    <div class="row-head" onclick="this.parentElement.classList.toggle('open')">
+      <span class="sev-tag {{ f.severity }}">{{ f.severity }}</span>
+      <span class="row-title">{{ f.title }}</span>
+      <span class="row-path">{{ f.method }} {{ f.endpoint }}</span>
+      <span class="row-chev">▸</span>
+    </div>
+    <div class="row-body">
+      <div class="blk">
+        <div class="blk-lbl">description</div>
+        <div class="blk-text">{{ f.description }}</div>
+      </div>
+
+      <div class="blk">
+        <div class="blk-lbl">remediation</div>
+        <div class="blk-text">{{ f.remediation }}</div>
+      </div>
+
+      <span class="owasp-pill">{{ f.owasp_category }}</span>
+
+      <div class="blk">
+        <div class="blk-lbl">request</div>
+        <div class="evi"><span class="ln1">{{ f.evidence.request_method }} {{ f.evidence.request_url }}</span>
+{% for k, v in f.evidence.request_headers.items() %}{{ k }}: {{ v }}
+{% endfor %}{% if f.evidence.request_body %}
+{{ f.evidence.request_body }}{% endif %}</div>
+      </div>
+
+      <div class="blk">
+        <div class="blk-lbl">response</div>
+        <div class="evi"><span class="ln-status {% if f.evidence.response_status and f.evidence.response_status < 400 %}ok{% endif %}">{{ f.evidence.response_status }}</span>
+{% if f.evidence.response_headers %}{% for k, v in f.evidence.response_headers.items() %}{{ k }}: {{ v }}
+{% endfor %}{% endif %}
+{{ f.evidence.response_body_snippet }}</div>
+      </div>
+
+      {% if f.evidence.notes %}
+      <div class="blk">
+        <div class="blk-lbl">notes</div>
+        <div class="blk-text">{{ f.evidence.notes }}</div>
+      </div>
+      {% endif %}
+
+      <div class="meta-line">{{ f.id }} · confidence {{ f.confidence|lower }}{% if f.cvss_score %} · cvss {{ f.cvss_score }}{% endif %} · {{ f.timestamp }}</div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% else %}
+  <div class="empty">no findings</div>
+  {% endif %}
+
+  <div class="ftr">apisec · owasp api security top 10 (2023) · {{ generated_at }}</div>
+
+</div>
+
+<script>
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+      chip.classList.add('on');
+      const f = chip.dataset.filter;
+      document.querySelectorAll('.finding').forEach(card => {
+        card.style.display = (f === 'ALL' || card.dataset.severity === f) ? '' : 'none';
+      });
+    });
+  });
+
+  const firstUrgent = document.querySelector('.finding[data-severity="CRITICAL"], .finding[data-severity="HIGH"]');
+  if (firstUrgent) firstUrgent.classList.add('open');
+</script>
+</body>
+</html>
