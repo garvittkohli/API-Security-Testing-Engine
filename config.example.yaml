@@ -1,0 +1,102 @@
+# API Security Testing Engine — example configuration
+#
+# Copy this file to config.yaml and adjust for your target.
+# Secrets should NEVER be committed — use ${ENV_VAR} syntax and export the
+# value before running a scan:
+#
+#   export API_TOKEN="eyJhbGc..."
+#   apisec scan config.yaml
+
+target:
+  base_url: "https://staging.example-api.com"
+
+auth:
+  # Bearer token — supports environment variable interpolation
+  bearer_token: "${API_TOKEN}"
+
+  # Alternatively, use an API key header instead of/in addition to bearer auth:
+  # api_key: "${API_KEY}"
+  # api_key_header: "X-API-Key"
+
+  # Any additional headers required for every request
+  extra_headers:
+    X-Tenant-ID: "demo-tenant"
+
+# Headers applied to every request regardless of auth
+headers:
+  Accept: "application/json"
+
+scan:
+  # Checks to run. Comment out any you want to skip.
+  checks:
+    - bola
+    - broken_auth
+    - mass_assignment
+    - rate_limit
+    - bfla
+    - ssrf
+    - injection
+    - misconfig
+    - shadow_endpoints
+
+  # Seconds to wait between requests (politeness / avoid self-inflicted DoS)
+  rate_limit_delay: 0.5
+
+  # Per-request timeout in seconds
+  timeout: 10
+
+  follow_redirects: true
+  verify_ssl: true
+
+  # Safety cap — stop a single check after this many findings
+  max_findings_per_check: 20
+
+# Paths the scanner must never touch (e.g. destructive admin actions, third-party webhooks)
+excluded_paths:
+  - "/api/v1/admin/wipe-database"
+  - "/api/v1/billing/charge"
+
+output:
+  dir: "reports"
+
+# Endpoints to test. For BOLA/mass-assignment/SSRF/injection checks to fire,
+# provide realistic sample_params / sample_body values — these represent IDs
+# and field values the authenticated user legitimately owns.
+endpoints:
+  - method: GET
+    path: "/api/v1/users/{id}/profile"
+    sample_params:
+      id: 1042
+
+  - method: GET
+    path: "/api/v1/orders/{id}"
+    sample_params:
+      id: 8801
+
+  - method: PATCH
+    path: "/api/v1/users/{id}"
+    sample_params:
+      id: 1042
+    sample_body:
+      name: "Test User"
+      bio: "Updated via apisec scan"
+
+  - method: GET
+    path: "/api/v1/products/search"
+    sample_params:
+      q: "laptop"
+
+  - method: POST
+    path: "/api/v1/integrations/webhook-test"
+    sample_body:
+      callback_url: "https://hooks.example.com/notify"
+      event: "order.created"
+
+  - method: POST
+    path: "/api/v1/auth/login"
+    sample_body:
+      email: "test@example.com"
+      password: "incorrect-password"
+
+  - method: GET
+    path: "/api/v1/health"
