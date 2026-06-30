@@ -1,0 +1,36 @@
+# --- Secrets & local config ---
+config.yaml
+*.env
+.env
+.env.*
+*token*.txt
+*secret*
+
+# --- Scan output ---
+reports/
+*.html
+!docs/**/*.html
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# --- Testing ---
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
