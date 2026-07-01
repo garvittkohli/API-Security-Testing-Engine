@@ -1,6 +1,6 @@
 """Render scan results as a self-contained HTML report."""
 
-
+from __future__ import annotations
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path

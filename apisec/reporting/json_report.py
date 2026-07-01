@@ -1,6 +1,6 @@
 """Serialize scan results to JSON with ECS-formatted events."""
 
-
+from __future__ import annotations
 import json
 from pathlib import Path
 
