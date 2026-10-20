@@ -1,27 +1,22 @@
 # API Security Testing Engine
 
-![CI](https://github.com/garvittkohli/api-security-engine/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/garvittkohli/Api-Security-Testing-Engine/actions/workflows/ci.yml/badge.svg)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![OWASP API Top 10 2023](https://img.shields.io/badge/OWASP%20API%20Top%2010-2023-red)
 
 An automated, OWASP API Security Top 10 (2023) aligned testing engine for REST APIs.
 
-Constructs and fires context-aware test payloads against API endpoints, then produces severity-graded findings — with the full HTTP request, response snippet, and remediation guidance — in a developer-ready HTML report and a SIEM-ingestible JSON output.
+Constructs and fires context-aware test payloads against API endpoints, then produces severity-graded findings with the full HTTP request, response snippet, and remediation guidance in a developer-ready HTML report and a SIEM-ingestible JSON output.
 
 ---
 
 ## Why this exists
 
-Existing tools each have gaps that leave a real coverage hole for API-specific security testing:
+Existing tools cover parts of this well. This engine is a lightweight, spec-free, CLI-first option focused on API authorization and misconfiguration checks.
 
-| Tool | Gap |
-|---|---|
-| **Burp Suite / OWASP ZAP** | GUI-centric, not natively CI/CD-native without an Enterprise license. Designed for web application testing — OWASP *Web* Top 10 — not the API-specific Top 10 |
-| **nuclei** | Template-based: only tests for patterns someone already wrote a template for. Can't construct context-aware payloads from your specific endpoint schema |
-| **RESTler** | Requires a complete OpenAPI/Swagger specification. Authorization logic flaws (BOLA, BFLA) fall outside its testing model |
-| **None of the above** | None produce a developer-ready report that maps each finding to OWASP category, includes the exact HTTP exchange as evidence, and gives concrete remediation steps |
-
-**This tool fills that gap**: lightweight Python, no spec file required, CI/CD native, with BOLA multi-ID probing and JWT manipulation that none of the above do out of the box.
+Burp Suite / ZAP: powerful general-purpose scanners, heavier to run in CI and not focused on API-specific authorization flaws like BOLA.
+nuclei: template-driven, so it only covers patterns someone has written a template for.
+RESTler: needs an OpenAPI/Swagger spec and is built around fuzzing, not authorization logic.
 
 ---
 
@@ -36,8 +31,10 @@ Existing tools each have gaps that leave a real coverage hole for API-specific s
 | API5 | Broken Function Level Authorization | Admin-suffix path escalation, undocumented HTTP method acceptance |
 | API7 | Server Side Request Forgery | Cloud metadata probes (AWS IMDSv1/v2, GCP, Azure), internal service probes |
 | API8 | Security Misconfiguration | Missing hardening headers, CORS origin reflection, stack trace exposure, Server banner |
-| API8 | Injection (cross-category) | SQL injection (error-based, blind, UNION), reflected XSS, OS command injection |
 | API9 | Improper Inventory Management | Shadow endpoint discovery (60+ paths), legacy API version detection |
+| Extra| Injection | SQL injection (error-based, blind, UNION), reflected XSS, OS command injection |
+
+Not covered: API6 (Unrestricted Access to Sensitive Business Flows) and API10 (Unsafe Consumption of APIs).
 
 ---
 
@@ -49,20 +46,20 @@ Existing tools each have gaps that leave a real coverage hole for API-specific s
 │          scan │ quick-check │ demo                                  │
 └───────────────────────────┬─────────────────────────────────────────┘
                             │
-                    ┌───────▼────────┐
-                    │    Scanner     │  Orchestrates checks, collects findings
+                    ┌───────▼───────┐
+                    │    Scanner    │  Orchestrates checks, collects findings
                     └──┬────────┬───┘
                        │        │
           ┌────────────▼──┐  ┌──▼────────────────────┐
-          │ PayloadEngine │  │     Check Registry     │
-          │               │  │  bola  broken_auth     │
-          │ - bola IDs    │  │  mass_assignment       │
-          │ - SQLi        │  │  rate_limit  bfla      │
-          │ - XSS         │  │  ssrf  injection       │
-          │ - CMDi        │  │  misconfig             │
-          │ - SSRF URLs   │  │  shadow_endpoints      │
-          │ - JWT bypass  │  │                        │
-          └───────────────┘  └───────────┬────────────┘
+          │ PayloadEngine │  │     Check Registry    │
+          │               │  │  bola  broken_auth    │
+          │ - bola IDs    │  │  mass_assignment      │
+          │ - SQLi        │  │  rate_limit  bfla     │
+          │ - XSS         │  │  ssrf  injection      │
+          │ - CMDi        │  │  misconfig            │
+          │ - SSRF URLs   │  │  shadow_endpoints     │
+          │ - JWT bypass  │  │                       │
+          └───────────────┘  └───────────┬───────────┘
                                          │
                                 ┌────────▼────────┐
                                 │   APIClient     │  Rate-limited, auth-aware
@@ -89,12 +86,12 @@ Existing tools each have gaps that leave a real coverage hole for API-specific s
 ## Installation
 
 ```bash
-git clone https://github.com/garvittkohli/api-security-engine.git
-cd api-security-engine
+git clone https://github.com/garvittkohli/API-Security-Testing-Engine
+cd Api-Security-Testing-Engine
 pip install -e .
 ```
 
-Dependencies: `requests`, `PyYAML`, `Jinja2` — nothing else.
+Dependencies: `requests`, `PyYAML`, `Jinja2` - nothing else.
 
 ---
 
@@ -106,7 +103,7 @@ Dependencies: `requests`, `PyYAML`, `Jinja2` — nothing else.
 apisec demo
 ```
 
-Generates 15 synthetic findings from across the full OWASP API Top 10, writes `reports/demo_report.html` and `reports/demo_report.json`. Works completely offline. The findings are modeled on real-world incidents — SSRF against AWS IMDS, alg:none JWT bypass, Spring Boot Actuator exposure, and so on.
+Generates 15 synthetic findings across the supported categories, writes `reports/demo_report.html` and `reports/demo_report.json`. Works completely offline. The findings are modeled on real-world incidents: SSRF against AWS IMDS, alg:none JWT bypass, Spring Boot Actuator exposure, and so on.
 
 ---
 
@@ -138,7 +135,7 @@ endpoints:
   - method: GET
     path: "/api/v1/users/{id}/profile"
     sample_params:
-      id: 1042                          # Your own user ID — BOLA probes neighbour IDs
+      id: 1042                          # Your own user ID: BOLA probes neighbour IDs
 
   - method: POST
     path: "/api/v1/integrations/webhook-test"
@@ -235,7 +232,7 @@ class MyCheck(BaseCheck):
 ```
 
 ```python
-# apisec/checks/__init__.py  — add one line:
+# apisec/checks/__init__.py  - add one line:
 from apisec.checks.my_check import MyCheck
 CHECK_REGISTRY["my_check"] = MyCheck
 ```
@@ -265,7 +262,7 @@ The rate limiting built into `APIClient` (`rate_limit_delay`, default 0.5s) ensu
 
 ## Related work
 
-This project is part of a portfolio of production-grade security tooling. See also:
+This project is part of a set of security tools. See also:
 
-- **GCP Misconfiguration Scanner** — IAM, Compute, VPC firewall, Cloud Storage, Cloud SQL, and Logging misconfiguration detection with Terraform HCL remediation generation and ELK Stack integration
-- **"64 Milliseconds"** — Published article on Android OTP interception vulnerabilities ([Medium](https://medium.com/@garvittkohli))
+- **GCP Misconfiguration Scanner**: IAM, Compute, VPC firewall, Cloud Storage, Cloud SQL, and Logging misconfiguration detection with Terraform HCL remediation generation and ELK Stack integration
+- **"64 Milliseconds"**: Published article on Android OTP interception vulnerabilities ([Medium](https://medium.com/@garvittkohli))
