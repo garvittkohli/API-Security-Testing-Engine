@@ -11,7 +11,7 @@ class BrokenAuthCheck(BaseCheck):
     name = "broken_auth"
     description = "Broken Authentication — missing/bypassed credential checks"
 
-    _SEVERITY_MAP = {
+    _SEVERITY_MAP: ClassVar[dict[str, tuple[Severity, float]]] = {
         "No Authorization header": (Severity.CRITICAL, 9.1),
         "Empty Bearer token": (Severity.CRITICAL, 9.1),
         "Null string token": (Severity.HIGH, 7.5),
