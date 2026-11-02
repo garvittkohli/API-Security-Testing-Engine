@@ -176,11 +176,12 @@ class APIClient:
     # Utility
     # ------------------------------------------------------------------
 
-    def safe_body_snippet(self, response: requests.Response, max_len: int = 500) -> str:
+        def safe_body_snippet(self, response: requests.Response, max_len: int = 500) -> str:
         try:
             text = response.text
             return text[:max_len] + ("..." if len(text) > max_len else "")
-        except Exception:
+        # Best-effort: building an evidence snippet must never crash a scan.
+        except Exception:  # noqa: BLE001
             return "<unreadable>"
 
     def response_headers_dict(self, response: requests.Response) -> dict[str, str]:
